@@ -1,0 +1,256 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:WolfGame.Avalonia.ViewModels"
+        xmlns:mano="using:mano"
+        xmlns:anim="https://github.com/whistyun/AnimatedImage.Avalonia"
+        x:Class="WolfGame.Avalonia.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Icon="/Assets/avalonia-logo.ico"
+        Width="1280" Height="720"
+        Title="WolfGame">
+	<Grid ColumnDefinitions="*, 360">
+
+		<!-- ============================================================ -->
+		<!-- 左：メイン画面                                                -->
+		<!-- ============================================================ -->
+		<Grid Grid.Column="0" RowDefinitions="64, *">
+
+			<!-- ヘッダー -->
+			<Border Grid.Row="0" Background="#222" Padding="16,0">
+				<Grid ColumnDefinitions="*, Auto">
+					<TextBlock Grid.Column="0"
+							   Text="{Binding HeaderText}"
+							   Foreground="White"
+							   FontSize="18"
+							   VerticalAlignment="Center"/>
+					<StackPanel Grid.Column="1"
+								Orientation="Horizontal"
+								VerticalAlignment="Center"
+								Spacing="8"
+								IsVisible="{Binding IsVoting}">
+						<TextBlock Text="投票中"
+								   Foreground="#FFD166"
+								   FontSize="13"/>
+						<ProgressBar Width="160" Height="10"
+									 Value="{Binding VoteProgress}"
+									 Minimum="0" Maximum="1"
+									 Foreground="#FFD166"/>
+					</StackPanel>
+				</Grid>
+			</Border>
+
+			<!-- キャラエリア -->
+			<Border Grid.Row="1" Background="#3a3a3a"
+					x:Name="CharacterArea" ClipToBounds="True">
+				<Grid>
+					<ItemsControl ItemsSource="{Binding Characters}">
+						<ItemsControl.ItemsPanel>
+							<ItemsPanelTemplate>
+								<Canvas/>
+							</ItemsPanelTemplate>
+						</ItemsControl.ItemsPanel>
+
+						<ItemsControl.ItemTemplate>
+							<DataTemplate x:DataType="vm:CharacterViewModel">
+								<Panel Width="240" Height="320" Opacity="{Binding Opacity}">
+									<Panel.RenderTransform>
+										<TranslateTransform X="{Binding PixelX}" Y="{Binding PixelY}"/>
+									</Panel.RenderTransform>
+
+									<!-- 名前プレート -->
+									<Border VerticalAlignment="Bottom"
+										HorizontalAlignment="Center"
+										Background="{Binding NamePlateColor}"
+										CornerRadius="4"
+										Padding="10,4">
+										<StackPanel Orientation="Horizontal" Spacing="6">
+											<Border Width="20" Height="20"
+												CornerRadius="10"
+												Background="#FFD166"
+												IsVisible="{Binding HasTurn}">
+												<TextBlock Text="{Binding TurnNumber}"
+														   Foreground="#222"
+														   FontWeight="Bold"
+														   FontSize="12"
+														   HorizontalAlignment="Center"
+														   VerticalAlignment="Center"/>
+											</Border>
+											<TextBlock Text="{Binding Name}"
+													   Foreground="White"
+													   FontSize="13"
+													   FontWeight="Bold"/>
+										</StackPanel>
+									</Border>
+
+									<!-- キャラ画像 -->
+									<Image VerticalAlignment="Bottom"
+										   HorizontalAlignment="Center"
+										   Margin="0,0,0,30"
+										   anim:ImageBehavior.AnimatedSource="{Binding Image}"
+										   Width="120" Height="120"
+										   RenderOptions.BitmapInterpolationMode="HighQuality"/>
+
+									<!-- 吹き出し -->
+									<Border VerticalAlignment="Bottom"
+											HorizontalAlignment="Center"
+											Margin="0,0,0,170"
+											IsVisible="{Binding IsSpeaking}"
+											Background="White"
+											CornerRadius="10"
+											Padding="12,8"
+											MaxWidth="240"
+											Cursor="Hand"
+											PointerPressed="OnSpeechBubbleClick">
+										<Grid ColumnDefinitions="*, Auto">
+											<TextBlock Grid.Column="0"
+													   Text="{Binding SpeechBubbleShort}"
+													   Foreground="Black"
+													   TextWrapping="Wrap"
+													   FontSize="14"
+													   FontWeight="Bold"/>
+											<TextBlock Grid.Column="1"
+													   Text="▸"
+													   Foreground="#888"
+													   FontSize="14"
+													   Margin="4,0,0,0"
+													   VerticalAlignment="Bottom"
+													   IsVisible="{Binding IsSpeechBubbleTruncated}"/>
+										</Grid>
+									</Border>
+								</Panel>
+							</DataTemplate>
+						</ItemsControl.ItemTemplate>
+					</ItemsControl>
+
+					<!-- ゲーム開始ボタン -->
+					<Border VerticalAlignment="Bottom"
+							HorizontalAlignment="Center"
+							Margin="0,0,0,24"
+							IsVisible="{Binding IsStartButtonVisible}"
+							Background="#FFD166"
+							CornerRadius="8"
+							Padding="32,16">
+						<Button Content="ゲーム開始"
+								FontSize="18"
+								FontWeight="Bold"
+								Background="Transparent"
+								Foreground="#222"
+								BorderThickness="0"
+								Click="OnStartGameClick"/>
+					</Border>
+				</Grid>
+			</Border>
+		</Grid>
+
+		<!-- ============================================================ -->
+		<!-- 右：サイドバー                                                -->
+		<!-- ============================================================ -->
+		<Grid Grid.Column="1" RowDefinitions="*, Auto" Background="#1a1a1a">
+			<ListBox Grid.Row="0"
+					 x:Name="EventList"
+					 ItemsSource="{Binding Events}"
+					 Background="Transparent"
+					 ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+				<ListBox.ItemTemplate>
+					<DataTemplate x:DataType="vm:EventViewModel">
+						<TextBlock Text="{Binding Text}" Foreground="White"
+								   TextWrapping="Wrap"/>
+					</DataTemplate>
+				</ListBox.ItemTemplate>
+			</ListBox>
+
+			<Grid Grid.Row="1" ColumnDefinitions="*, Auto" Margin="8"
+				  IsVisible="{Binding IsInputVisible}">
+				<TextBox Grid.Column="0"
+						 Text="{Binding InputText, Mode=TwoWay}"
+						 PlaceholderText="{Binding InputPrompt}"
+						 KeyDown="OnInputKeyDown"/>
+				<Button Grid.Column="1" Content="送信" Margin="4,0,0,0"
+						Click="OnSubmitText"/>
+			</Grid>
+		</Grid>
+
+		<!-- ============================================================ -->
+		<!-- 選択オーバーレイ（投票・占い・襲撃）                          -->
+		<!-- ============================================================ -->
+		<Border Grid.Column="0"
+				Background="#000000AA"
+				IsVisible="{Binding IsChoiceVisible}">
+			<Border VerticalAlignment="Center" HorizontalAlignment="Center"
+					Background="#2a2a2a"
+					CornerRadius="12"
+					Padding="32,24"
+					BorderBrush="#666"
+					BorderThickness="1"
+					MinWidth="340">
+				<StackPanel Spacing="16">
+					<TextBlock Text="{Binding ChoicePrompt}"
+							   Foreground="White"
+							   FontSize="20"
+							   FontWeight="Bold"
+							   HorizontalAlignment="Center"/>
+					<ItemsControl ItemsSource="{Binding ChoiceOptions}">
+						<ItemsControl.ItemTemplate>
+							<DataTemplate x:DataType="mano:ChoiceOption">
+								<Button Content="{Binding Label}"
+										Margin="0,4"
+										Width="260"
+										Height="40"
+										HorizontalContentAlignment="Center"
+										HorizontalAlignment="Center"
+										FontSize="15"
+										Click="OnChoiceClick"/>
+							</DataTemplate>
+						</ItemsControl.ItemTemplate>
+					</ItemsControl>
+				</StackPanel>
+			</Border>
+		</Border>
+
+		<!-- ============================================================ -->
+		<!-- 吹き出し詳細                                                  -->
+		<!-- ============================================================ -->
+		<Border Grid.Column="0"
+				Background="#000000CC"
+				IsVisible="{Binding IsBubbleDetailVisible}"
+				PointerPressed="OnBubbleDetailBackgroundClick">
+			<StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"
+						Spacing="12" MaxWidth="640" Margin="40">
+				<TextBlock Text="{Binding BubbleDetailSpeaker}"
+						   Foreground="#CCCCCC" FontSize="14"/>
+				<Border Background="White" CornerRadius="12" Padding="20">
+					<TextBlock Text="{Binding BubbleDetailText}"
+							   Foreground="Black"
+							   TextWrapping="Wrap"
+							   FontSize="16"/>
+				</Border>
+				<Button Content="閉じる"
+						HorizontalAlignment="Center"
+						Click="OnBubbleDetailClose"/>
+			</StackPanel>
+		</Border>
+
+		<!-- ============================================================ -->
+		<!-- ゲーム終了ダイアログ                                          -->
+		<!-- ============================================================ -->
+		<Border Grid.Column="0" Grid.ColumnSpan="2"
+				Background="#000000AA"
+				IsVisible="{Binding IsGameOverVisible}">
+			<StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"
+						Spacing="20" MaxWidth="600" Margin="40">
+				<TextBlock Text="{Binding GameOverText}"
+						   Foreground="White" FontSize="32" FontWeight="Bold"
+						   HorizontalAlignment="Center"/>
+				<Border Background="White" CornerRadius="12" Padding="20">
+					<TextBlock Text="{Binding GameOverDetails}"
+							   Foreground="Black" TextWrapping="Wrap" FontSize="15"/>
+				</Border>
+				<Button Content="次のラウンドへ"
+						HorizontalAlignment="Center"
+						FontSize="16"
+						Padding="24,12"
+						Click="OnProceedNextRound"/>
+			</StackPanel>
+		</Border>
+	</Grid>
+</Window>
