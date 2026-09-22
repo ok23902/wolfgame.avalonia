@@ -1,0 +1,3 @@
+[submodule "WolfGame"]
+	path = WolfGame
+	url = https://github.com/ok23902/wolfgame
