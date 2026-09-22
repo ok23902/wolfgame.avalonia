@@ -7,6 +7,7 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationIcon>Assets\avalonia-logo.ico</ApplicationIcon>
+    <DefaultItemExcludes>$(DefaultItemExcludes);WolfGame\**</DefaultItemExcludes>
   </PropertyGroup>
 
   <ItemGroup>
@@ -28,7 +29,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include=".\WolfGame\WolfGame.csproj" />
-  </ItemGroup>
-  
+    <ProjectReference Include="WolfGame\WolfGame.csproj" />
+    <None Include="WolfGame\.env" CopyToOutputDirectory="PreserveNewest" Condition="Exists('WolfGame\.env')" />
+    <None Include="WolfGame\json\character.json" CopyToOutputDirectory="PreserveNewest" Condition="Exists('WolfGame\json\character.json')" />
+  </ItemGroup>  
 </Project>

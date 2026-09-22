@@ -69,8 +69,7 @@ public partial class MainWindowViewModel : ViewModelBase
             Input.SetHandlers(RequestTextAsync, RequestChoiceAsync);
 
             var jsonPath = Path.GetFullPath(
-                Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..",
-                             "WolfGame", "json", "character.json"));
+                Path.Combine(AppContext.BaseDirectory, "WolfGame", "json", "character.json"));
             Debug.WriteLine($"[INIT] json: {jsonPath} exists={File.Exists(jsonPath)}");
 
             await _engine.SetupAsync(jsonPath);
@@ -109,9 +108,7 @@ public partial class MainWindowViewModel : ViewModelBase
         // .env を探す（複数の候補地を順に試す）
         var candidates = new[]
         {
-            Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "WolfGame", ".env"),
-            Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".env"),
-            Path.Combine(AppContext.BaseDirectory, ".env"),
+            Path.Combine(AppContext.BaseDirectory, "WolfGame", ".env")
         };
 
         foreach (var p in candidates)
