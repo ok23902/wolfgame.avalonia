@@ -1,5 +1,5 @@
-﻿using Avalonia.Platform;
-using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
+using System.IO;
 
 namespace WolfGame.Avalonia.ViewModels;
 
@@ -36,10 +36,12 @@ public partial class CharacterViewModel : ObservableObject
             else
                 candidates = new[] { $"{Id}_{Status}.gif", $"{Id}_idle.gif", $"{Id}_normal.gif" };
 
+            string baseDir = Path.Combine(AppContext.BaseDirectory, "Config", "sprites", Id);
             foreach (var file in candidates)
             {
-                var path = $"avares://WolfGame.Avalonia/Assets/{Id}/{file}";
-                try { if (AssetLoader.Exists(new Uri(path))) return path; } catch { }
+                var fullPath = Path.Combine(baseDir, file);
+                if (File.Exists(fullPath))
+                    return fullPath;
             }
             return null;
         }

@@ -1,3 +1,4 @@
 <Solution>
   <Project Path="WolfGame.Avalonia.csproj" />
+  <Project Path="WolfGame\WolfGame.csproj" />
 </Solution>

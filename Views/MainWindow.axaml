@@ -10,12 +10,8 @@
         Title="WolfGame">
 	<Grid ColumnDefinitions="*, 360">
 
-		<!-- ============================================================ -->
-		<!-- 左：メイン画面                                                -->
-		<!-- ============================================================ -->
+		<!-- 左：メイン画面 -->
 		<Grid Grid.Column="0" RowDefinitions="64, *">
-
-			<!-- ヘッダー -->
 			<Border Grid.Row="0" Background="#222" Padding="16,0">
 				<Grid ColumnDefinitions="*, Auto">
 					<TextBlock Grid.Column="0"
@@ -28,9 +24,7 @@
 								VerticalAlignment="Center"
 								Spacing="8"
 								IsVisible="{Binding IsVoting}">
-						<TextBlock Text="投票中"
-								   Foreground="#FFD166"
-								   FontSize="13"/>
+						<TextBlock Text="投票中" Foreground="#FFD166" FontSize="13"/>
 						<ProgressBar Width="160" Height="10"
 									 Value="{Binding VoteProgress}"
 									 Minimum="0" Maximum="1"
@@ -39,7 +33,6 @@
 				</Grid>
 			</Border>
 
-			<!-- キャラエリア -->
 			<Border Grid.Row="1" Background="#3a3a3a"
 					x:Name="CharacterArea" ClipToBounds="True">
 				<Grid>
@@ -57,17 +50,16 @@
 										<TranslateTransform X="{Binding PixelX}" Y="{Binding PixelY}"/>
 									</Panel.RenderTransform>
 
-									<!-- 名前プレート -->
 									<Border VerticalAlignment="Bottom"
-										HorizontalAlignment="Center"
-										Background="{Binding NamePlateColor}"
-										CornerRadius="4"
-										Padding="10,4">
+											HorizontalAlignment="Center"
+											Background="{Binding NamePlateColor}"
+											CornerRadius="4"
+											Padding="10,4">
 										<StackPanel Orientation="Horizontal" Spacing="6">
 											<Border Width="20" Height="20"
-												CornerRadius="10"
-												Background="#FFD166"
-												IsVisible="{Binding HasTurn}">
+													CornerRadius="10"
+													Background="#FFD166"
+													IsVisible="{Binding HasTurn}">
 												<TextBlock Text="{Binding TurnNumber}"
 														   Foreground="#222"
 														   FontWeight="Bold"
@@ -82,7 +74,6 @@
 										</StackPanel>
 									</Border>
 
-									<!-- キャラ画像 -->
 									<Image VerticalAlignment="Bottom"
 										   HorizontalAlignment="Center"
 										   Margin="0,0,0,30"
@@ -90,7 +81,6 @@
 										   Width="120" Height="120"
 										   RenderOptions.BitmapInterpolationMode="HighQuality"/>
 
-									<!-- 吹き出し -->
 									<Border VerticalAlignment="Bottom"
 											HorizontalAlignment="Center"
 											Margin="0,0,0,170"
@@ -122,7 +112,6 @@
 						</ItemsControl.ItemTemplate>
 					</ItemsControl>
 
-					<!-- ゲーム開始ボタン -->
 					<Border VerticalAlignment="Bottom"
 							HorizontalAlignment="Center"
 							Margin="0,0,0,24"
@@ -142,9 +131,7 @@
 			</Border>
 		</Grid>
 
-		<!-- ============================================================ -->
-		<!-- 右：サイドバー                                                -->
-		<!-- ============================================================ -->
+		<!-- 右：サイドバー -->
 		<Grid Grid.Column="1" RowDefinitions="*, Auto" Background="#1a1a1a">
 			<ListBox Grid.Row="0"
 					 x:Name="EventList"
@@ -170,9 +157,7 @@
 			</Grid>
 		</Grid>
 
-		<!-- ============================================================ -->
-		<!-- 選択オーバーレイ（投票・占い・襲撃）                          -->
-		<!-- ============================================================ -->
+		<!-- 選択オーバーレイ -->
 		<Border Grid.Column="0"
 				Background="#000000AA"
 				IsVisible="{Binding IsChoiceVisible}">
@@ -207,9 +192,7 @@
 			</Border>
 		</Border>
 
-		<!-- ============================================================ -->
-		<!-- 吹き出し詳細                                                  -->
-		<!-- ============================================================ -->
+		<!-- 吹き出し詳細 -->
 		<Border Grid.Column="0"
 				Background="#000000CC"
 				IsVisible="{Binding IsBubbleDetailVisible}"
@@ -230,9 +213,7 @@
 			</StackPanel>
 		</Border>
 
-		<!-- ============================================================ -->
-		<!-- ゲーム終了ダイアログ                                          -->
-		<!-- ============================================================ -->
+		<!-- ゲーム終了ダイアログ -->
 		<Border Grid.Column="0" Grid.ColumnSpan="2"
 				Background="#000000AA"
 				IsVisible="{Binding IsGameOverVisible}">
@@ -251,6 +232,50 @@
 						Padding="24,12"
 						Click="OnProceedNextRound"/>
 			</StackPanel>
+		</Border>
+
+		<!-- レート制限オーバーレイ -->
+		<Border Grid.Column="0" Grid.ColumnSpan="2"
+				Background="#000000CC"
+				IsVisible="{Binding IsRateLimitVisible}">
+			<Border VerticalAlignment="Center" HorizontalAlignment="Center"
+					Background="#2a2a2a"
+					CornerRadius="12"
+					Padding="32,24"
+					BorderBrush="#FFD166"
+					BorderThickness="2"
+					MaxWidth="500">
+				<StackPanel Spacing="16">
+					<TextBlock Text="{Binding RateLimitTitle}"
+							   Foreground="#FFD166"
+							   FontSize="20"
+							   FontWeight="Bold"
+							   HorizontalAlignment="Center"/>
+					<TextBlock Text="{Binding RateLimitMessage}"
+							   Foreground="White"
+							   FontSize="14"
+							   TextWrapping="Wrap"
+							   TextAlignment="Center"/>
+
+					<ProgressBar IsIndeterminate="True"
+								 Width="280"
+								 Height="6"
+								 IsVisible="{Binding !IsRateLimitExhausted}"
+								 Foreground="#FFD166"/>
+
+					<StackPanel Orientation="Horizontal"
+								HorizontalAlignment="Center"
+								Spacing="12"
+								IsVisible="{Binding IsRateLimitExhausted}">
+						<Button Content="待機して再開"
+								Padding="20,10"
+								Click="OnResumeRateLimit"/>
+						<Button Content="中断"
+								Padding="20,10"
+								Click="OnAbortRound"/>
+					</StackPanel>
+				</StackPanel>
+			</Border>
 		</Border>
 	</Grid>
 </Window>

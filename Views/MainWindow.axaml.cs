@@ -8,6 +8,8 @@ namespace WolfGame.Avalonia.Views;
 
 public partial class MainWindow : Window
 {
+    private bool _initialized;
+
     public MainWindow()
     {
         InitializeComponent();
@@ -15,15 +17,24 @@ public partial class MainWindow : Window
 
         Opened += async (_, _) =>
         {
-            if (DataContext is MainWindowViewModel vm)
+            if (DataContext is not MainWindowViewModel vm) return;
+            if (_initialized) return;
+            _initialized = true;
+
+            vm.ScrollToBottom += () =>
             {
-                vm.ScrollToBottom += () =>
-                {
-                    if (vm.Events.Count > 0)
-                        EventList.ScrollIntoView(vm.Events[^1]);
-                };
+                if (vm.Events.Count > 0)
+                    EventList.ScrollIntoView(vm.Events[^1]);
+            };
+
+            try
+            {
                 await vm.InitializeAsync();
                 vm.UpdateCanvasSize(CharacterArea.Bounds.Width, CharacterArea.Bounds.Height);
+            }
+            catch (Exception ex)
+            {
+                vm.ShowFatalError(ex);
             }
         };
 
@@ -56,6 +67,7 @@ public partial class MainWindow : Window
             vm.SubmitChoice(opt);
         }
     }
+
     private void OnSpeechBubbleClick(object? sender, PointerPressedEventArgs e)
     {
         if (sender is Control ctl && ctl.DataContext is CharacterViewModel cvm
@@ -74,22 +86,27 @@ public partial class MainWindow : Window
 
     private void OnBubbleDetailBackgroundClick(object? sender, PointerPressedEventArgs e)
     {
-        // 背景（Border 自体）がクリックされたときだけ閉じる
         if (e.Source == sender && DataContext is MainWindowViewModel vm)
             vm.CloseBubbleDetail();
     }
+
     private void OnStartGameClick(object? sender, RoutedEventArgs e)
     {
-        Console.WriteLine("[BTN] click!");
-        if (DataContext is MainWindowViewModel vm)
-        {
-            Console.WriteLine("[BTN] vm found");
-            vm.RequestStartGame();
-        }
+        if (DataContext is MainWindowViewModel vm) vm.RequestStartGame();
     }
 
     private void OnProceedNextRound(object? sender, RoutedEventArgs e)
     {
         if (DataContext is MainWindowViewModel vm) vm.ProceedToNextRound();
+    }
+
+    private void OnResumeRateLimit(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainWindowViewModel vm) vm.ResumeRateLimit();
+    }
+
+    private void OnAbortRound(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainWindowViewModel vm) vm.AbortRound();
     }
 }

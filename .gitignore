@@ -53,3 +53,4 @@ publish/
 Assets/*
 !Assets/avalonia-logo.ico
 
+Config/*

@@ -17,7 +17,7 @@ public partial class MainWindowViewModel : ViewModelBase
 {
     private readonly GameEngine _engine = new();
 
-    [ObservableProperty] private string _headerText = "ManoRoom";
+    [ObservableProperty] private string _headerText = "WolfGame";
     [ObservableProperty] private bool _isInputVisible;
     [ObservableProperty] private string _inputPrompt = "";
     [ObservableProperty] private string _inputText = "";
@@ -44,6 +44,20 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty] private bool _isGameOverVisible;
     [ObservableProperty] private string _gameOverText = "";
     [ObservableProperty] private string _gameOverDetails = "";
+    [ObservableProperty] private bool _isFatalErrorVisible;
+    [ObservableProperty] private string _fatalErrorText = "";
+    [ObservableProperty] private bool _isRateLimitVisible;
+    [ObservableProperty] private string _rateLimitTitle = "";
+    [ObservableProperty] private string _rateLimitMessage = "";
+    [ObservableProperty] private bool _isRateLimitExhausted;
+
+    public void ShowFatalError(Exception ex)
+    {
+        FatalErrorText =
+            "起動に失敗しました。\n\n" + ex.Message +
+            "\n\nWolfGame フォルダの .env と character.json を確認してください。";
+        IsFatalErrorVisible = true;
+    }
 
     public async Task InitializeAsync()
     {
@@ -57,6 +71,11 @@ public partial class MainWindowViewModel : ViewModelBase
             _engine.ThinkingChanged += OnThinkingChanged;
             _engine.GameEnded += OnGameEnded;
             _engine.VoteProgressChanged += OnVoteProgressChanged;
+            _engine.CharacterStatusChanged += OnCharacterStatusChanged;
+            _engine.RateLimitWaiting += OnRateLimitWaiting;
+            _engine.RateLimitExhausted += OnRateLimitExhausted;
+            _engine.RateLimitRecovered += OnRateLimitRecovered;
+            _engine.ErrorOccurred += OnErrorOccurred;
             _engine.ChatRoundStarted += () =>
             {
                 Dispatcher.UIThread.Post(() =>
@@ -69,7 +88,7 @@ public partial class MainWindowViewModel : ViewModelBase
             Input.SetHandlers(RequestTextAsync, RequestChoiceAsync);
 
             var jsonPath = Path.GetFullPath(
-                Path.Combine(AppContext.BaseDirectory, "WolfGame", "json", "character.json"));
+                Path.Combine(AppContext.BaseDirectory, "Config", "data", "character.json"));
             Debug.WriteLine($"[INIT] json: {jsonPath} exists={File.Exists(jsonPath)}");
 
             await _engine.SetupAsync(jsonPath);
@@ -77,6 +96,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
+                Characters.Clear();
                 foreach (var c in _engine.Wolf.Direct<CharacterObject>())
                 {
                     Characters.Add(new CharacterViewModel
@@ -93,7 +113,6 @@ public partial class MainWindowViewModel : ViewModelBase
             });
 
             _ = Task.Run(() => _engine.RunAsync());
-
         }
         catch (Exception ex)
         {
@@ -105,10 +124,9 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private static void InitLlm()
     {
-        // .env を探す（複数の候補地を順に試す）
         var candidates = new[]
         {
-            Path.Combine(AppContext.BaseDirectory, "WolfGame", ".env")
+            Path.Combine(AppContext.BaseDirectory, "Config", "env", ".env")
         };
 
         foreach (var p in candidates)
@@ -213,7 +231,6 @@ public partial class MainWindowViewModel : ViewModelBase
         Dispatcher.UIThread.Post(() =>
         {
             Events.Add(new EventViewModel { Text = FormatEvent(e) });
-            // 自動スクロール（次のフレームで）
             Dispatcher.UIThread.Post(() => ScrollToBottom?.Invoke(), DispatcherPriority.Background);
 
             if (e.Kind == "utterance")
@@ -245,12 +262,15 @@ public partial class MainWindowViewModel : ViewModelBase
                 c.ClearSpeech();
         });
     }
+
     public void ShowBubbleDetail(CharacterViewModel c)
     {
         BubbleDetailSpeaker = c.Name;
         BubbleDetailText = c.SpeechBubbleFull;
         IsBubbleDetailVisible = true;
     }
+
+    public void CloseBubbleDetail() => IsBubbleDetailVisible = false;
 
     private void OnStateChanged(WolfObject wolf)
     {
@@ -275,8 +295,6 @@ public partial class MainWindowViewModel : ViewModelBase
             }
         });
     }
-    public void CloseBubbleDetail() => IsBubbleDetailVisible = false;
-
 
     private void OnGameEnded(string winner)
     {
@@ -312,6 +330,7 @@ public partial class MainWindowViewModel : ViewModelBase
         "system" => $"[SYS] {e.Text}",
         _ => e.Text
     };
+
     private void OnThinkingChanged(string? id)
     {
         Dispatcher.UIThread.Post(() =>
@@ -320,6 +339,7 @@ public partial class MainWindowViewModel : ViewModelBase
                 c.IsThinking = (c.Id == id);
         });
     }
+
     private void OnVoteProgressChanged()
     {
         Dispatcher.UIThread.Post(() =>
@@ -329,29 +349,83 @@ public partial class MainWindowViewModel : ViewModelBase
             VoteProgress = wolf.VotesExpected == 0 ? 0 : (double)wolf.VotesReceived / wolf.VotesExpected;
         });
     }
+
+    private void OnCharacterStatusChanged(string id, string status)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            var c = Characters.FirstOrDefault(x => x.Id == id);
+            if (c != null) c.Status = status;
+        });
+    }
+
+    private void OnRateLimitWaiting(string id, string name, int attempt, int max, double waitSec)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            IsRateLimitVisible = true;
+            IsRateLimitExhausted = false;
+            RateLimitTitle = "AI が待機中…";
+            RateLimitMessage = $"{name} ({attempt}/{max}) - {waitSec:0}秒後に再試行";
+        });
+    }
+
+    private void OnRateLimitExhausted(string id, string name)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            IsRateLimitVisible = true;
+            IsRateLimitExhausted = true;
+            RateLimitTitle = "AI のレート制限に達しました";
+            RateLimitMessage =
+                "無料枠の上限に達した可能性があります。\n" +
+                "待機して再開するか、中断してください。";
+        });
+    }
+
+    private void OnRateLimitRecovered()
+    {
+        Dispatcher.UIThread.Post(() => IsRateLimitVisible = false);
+    }
+
+    private void OnErrorOccurred(Exception ex)
+    {
+        Dispatcher.UIThread.Post(() => ShowFatalError(ex));
+    }
+
     public void RequestStartGame()
     {
-        Console.WriteLine("[VM] RequestStartGame");
-
-        // ★ 保留中の入力・選択を強制解除
         var textTcs = _textTcs;
         _textTcs = null;
         IsInputVisible = false;
         InputText = "";
-        textTcs?.TrySetResult("……。");   // 沈黙で返す
+        textTcs?.TrySetResult("……。");
 
         var choiceTcs = _choiceTcs;
         _choiceTcs = null;
         IsChoiceVisible = false;
-        choiceTcs?.TrySetResult(null);    // 選択なし
+        choiceTcs?.TrySetResult(null);
 
         IsStartButtonVisible = false;
         _engine.RequestStartGame();
     }
+
     public void ProceedToNextRound()
     {
         IsGameOverVisible = false;
         _engine.ProceedToNextRound();
+    }
+
+    public void ResumeRateLimit()
+    {
+        IsRateLimitVisible = false;
+        _engine.ResumeRateLimit(true);
+    }
+
+    public void AbortRound()
+    {
+        IsRateLimitVisible = false;
+        _engine.ResumeRateLimit(false);
     }
 }
 
